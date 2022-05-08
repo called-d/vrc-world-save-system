@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="https://unpkg.com/crypto-js/crypto-js.js"></script>
+<style>label,input,textarea{display:block;width:100%}</style>
+<label>
+  saveData
+  <input type="text" id="saveData" autocomplete="off" />
+</label>
+<label>
+  secret token
+  <input type="password" id="secretToken" name="secret_token" autocomplete="off" />
+</label>
+<label>
+  player.displayName
+  <input type="text" id="playerName" name="player_display_name" autocomplete="off" />
+</label>
+<label>
+  serialized
+  <textarea rows="20" id="serialized" readonly></textarea>
+</label>
+<script>
+const { RC4, SHA256 } = CryptoJS
+const { Utf8 } = CryptoJS.enc
+const error = message => {
+  if (message) console.error(message)
+  serialized.value = message
+}
+const decrypt = () => {
+  const hash = saveData.value.substring(0, 64)
+  const encrypted = saveData.value.substring(64)
+  const password = playerName.value
+    ? `${secretToken.value}|${playerName.value}`
+    : secretToken.value
+  if (!hash || !encrypted || !password) return error("")
+  try {
+    const decrypted = RC4.decrypt(encrypted, Utf8.parse(password)).toString(Utf8)
+    if (SHA256(decrypted).toString() !== hash) return error("hash check failed")
+    serialized.value = JSON.stringify(JSON.parse(decrypted), undefined, 2)
+  } catch (e) {
+    console.error(e)
+    return error("failed to decrypt")
+  }
+}
+[saveData, secretToken, playerName].forEach(input => input.addEventListener('change', decrypt, false))
+</script>
